@@ -1,0 +1,4 @@
+﻿interface:
+  display_name: "短剧导演分镜规划"
+  short_description: "把剧本/小说拆成剧情节拍、镜头卡、首帧和运动提示词。"
+  default_prompt: "使用 $drama-director，把我的短剧、漫剧或小说段落拆成导演规划、镜头卡和视频提示词。"

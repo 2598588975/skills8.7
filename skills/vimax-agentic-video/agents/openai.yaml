@@ -1,0 +1,3 @@
+interface:
+  display_name: "ViMax Agentic Video"
+  short_description: "Plan end-to-end agentic video generation from story to shots and prompts."

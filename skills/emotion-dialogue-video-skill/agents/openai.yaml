@@ -1,0 +1,4 @@
+interface:
+  display_name: "台词情绪视频"
+  short_description: "把台词、情绪和人物图转成单人特写情绪表演视频提示词。"
+  default_prompt: "用 $emotion-dialogue-video-skill，根据我的人物参考图、台词和情绪，生成 Seedance 2.0 可用的情绪表演视频提示词。"

@@ -1,0 +1,4 @@
+﻿interface:
+  display_name: "AI视频提示词"
+  short_description: "为LibTV/Seedance写角色一致性、首帧和I2V运动提示词。"
+  default_prompt: "使用 $video-prompting，为我的AI视频项目写角色一致性、首帧和图生视频运动提示词。"

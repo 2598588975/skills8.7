@@ -1,0 +1,4 @@
+interface:
+  display_name: "故事板图生成"
+  short_description: "将剧情脚本与人物身份板整理成一张清晰的AI视频手绘分镜图。"
+  default_prompt: "Use $storyboard-image-sheet to turn this scene script and character boards into one clear hand-drawn AI video storyboard sheet."
