@@ -22,6 +22,7 @@ Top-level skill folders included in this backup:
 - `pilipili-autovideo`
 - `screenwriting-master`
 - `script-storyboard-board`
+- `script-to-cinematic-production-board`
 - `script-to-shot-engine`
 - `seedance-20`
 - `seedance-storyboard`
@@ -35,4 +36,3 @@ Top-level skill folders included in this backup:
 - `video-use`
 - `vidu-skills`
 - `vimax-agentic-video`
-
