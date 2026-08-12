@@ -5,6 +5,10 @@ description: Control subtle facial expression arcs in AI image/video prompts. Us
 
 # Micro Expression Control
 
+## Required Reference
+
+For detailed acting, time-coded performance, dialogue beats, two-person gaze choreography, or requests such as “写到示例图这么细”, read [references/feishu-micro-expression.md](references/feishu-micro-expression.md) completely before writing. Use the compact rules below only for short rewrites.
+
 ## Core Pattern
 
 When describing a face, use this structure:
@@ -59,3 +63,12 @@ After writing a video prompt, check:
 ## Output Integration
 
 When combining with shot-by-shot video prompts, add one compact micro-expression clause inside each shot after the main action. Keep it visible and playable: one to three facial/physical changes per beat is usually enough.
+
+For a detailed 10–20 second performance, use four layers in every time range:
+
+1. external action and the dramatic trigger;
+2. gaze path and blink timing;
+3. mouth, jaw, brow, breath, shoulders, head angle, hands, and posture;
+4. the emotional landing point plus continuity into the next beat.
+
+Keep left/right screen direction explicit for two-person scenes. Describe alternating glances as a causal chain, not simultaneous random eye motion. Reserve direct eye contact for the emotional peak and specify its approximate duration.

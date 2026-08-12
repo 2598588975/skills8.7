@@ -1,77 +1,85 @@
 ---
 name: clay-white-model-storyboard
-description: Turn scripts, prose, shot lists, or existing storyboards into coherent cinematic storyboards rendered as untextured matte white clay maquettes. Use for requests mentioning clay white-model storyboards, white clay previs, clay animatics, grayscale 3D blocking, "黏土白膜", "黏土白模", "白模故事板", "黏土分镜", or a 9-grid/12-grid storyboard that should preserve character, scene, screen direction, and camera continuity without color or finished materials.
+description: 将剧本、故事梗概、广告创意、动作段落、参考图或已有分镜转换为“黏土白模／黏土白膜／Clay Render／White Model／3D Previs”风格的单帧、连续分镜提示词或完整故事板图片。用于用户要求白色黏土模型分镜、无材质三维预演、灰白模故事板、3D blocking、体块化镜头设计、白模九宫格、白模分镜图、用白模检查人物走位和空间关系，或希望生成可供即梦、Seedance、可灵、Veo、Sora 等视频模型参考的干净构图板时；默认不是彩色黏土动画或手工定格动画。
 ---
 
-# Clay White-Model Storyboard
+# 黏土白模故事板
 
-Create a practical film-previsualization board in a uniform white-clay look. Preserve story clarity and shot continuity first; use the clay material as a neutral visual language, not as cute decoration.
+把内容剥离到“形体、比例、空间、机位、动作和明暗”六个层面，生成统一哑光白材质的三维预演故事板。默认先输出提示词；用户明确要求出图时再调用图像生成工具。
 
-## Required Reference
+## 先判断模式
 
-Read `references/prompt-system.md` before writing prompts or generating frames. It contains the material lock, shot templates, continuity rules, and QA checklist.
+- **白模预演（默认）**：无贴图、统一灰白哑光材质、清晰体块、稳定透视，用于镜头规划。
+- **白模概念图**：单张较精致的白模画面，用于空间、灯光或产品体块验证。
+- **白模故事板表**：4、6、8、9 或 12 格连续镜头，默认 2×3 共 6 格。
+- **手工黏土定格**：只有用户明确说“定格动画、claymation、手捏、指纹、12fps”时才使用；不得与默认白模混写。
 
-## Workflow
+需要精确材质、布光与风格边界时，完整读取 [visual-language.md](references/visual-language.md)。需要可直接复制的单帧、九宫格或参考图改写模板时，完整读取 [prompt-templates.md](references/prompt-templates.md)。需要规划镜头序列、人物调度和连续性时，完整读取 [shot-grammar.md](references/shot-grammar.md)。
 
-1. Parse the source into causal beats. Split when the action, information, emotional state, camera purpose, or location changes. Do not create several shots that communicate the same thing.
-2. Establish a continuity bible before drafting frames:
-   - Character identity: age range, build, facial silhouette, hair mass, costume silhouette, and distinguishing feature.
-   - Environment: architecture, entrances, furniture, hero props, and fixed light direction.
-   - Blocking: character positions, eyelines, movement direction, and screen axis.
-   - Material: every visible surface uses the same matte white clay unless the user explicitly allows another neutral value.
-3. Choose the board format from the request. Default to 9 frames, 16:9, landscape, with one decisive narrative beat per frame. Use 12 frames when the action needs setup, development, and consequence that cannot read clearly in 9.
-4. Design coverage as a sequence, not a collection of attractive angles. Include an establishing or master shot, readable action coverage, reaction or insert shots only when they add information, and a final consequence image.
-5. Keep screen direction and the 180-degree axis stable. Cross the axis only through a motivated neutral shot, visible camera move, or character movement that re-establishes orientation.
-6. Write a global lock once, then one self-contained prompt per frame. Repeat exact identity, wardrobe silhouette, environment anchors, material wording, and light direction where consistency matters.
-7. Generate frames sequentially when tools permit. Approve or inspect frame 1 as the identity and environment anchor, then reference the latest approved frame for the next shot. Generate a single grid only for fast ideation.
-8. Run the QA checklist in the reference. Repair individual misses rather than rewriting the whole board.
+## 工作流
 
-## Defaults
+1. 锁定内容：人物数量、身份轮廓、服装外形、道具、场景、剧情起点、转折与落点。
+2. 锁定交付画幅：默认电影/广告为 16:9；短视频为 9:16；不要在设计完成后再裁切。
+3. 把场景拆成可读体块：前景遮挡、中景人物、背景建筑；保留门窗、台阶、桌椅、车辆等决定空间关系的物体，删除纯装饰。
+4. 把人物拆成稳定轮廓：头发、服装、身高、体型和关键道具保持一致；用姿态、头部方向与手臂动作表达情绪，不依赖肤色和精细妆容。
+5. 把剧情拆成镜头：每格只承担一个主要动作或情绪变化；避免一格塞进连续三步动作。
+6. 选择景别和角度：至少包含建立空间、推进动作、关键反应和结尾落点；相邻画面不得只换轻微构图。
+7. 统一白模视觉：所有人物、服装、道具和环境使用同一体系的象牙白至浅灰哑光材质；允许用明暗区分体块，不允许靠局部彩色辨认角色。
+8. 输出总提示词、逐格内容、简短图内标签和外部分镜说明。若用于视频模型，额外注明白模图只控制构图、站位、空间和运镜，不继承白模材质。
 
-Apply sensible defaults without stopping for questions when the source is clear:
+## 白模视觉硬约束
 
-- Aspect ratio: 16:9.
-- Board size: 9 frames.
-- Image treatment: monochrome off-white clay with neutral-gray shadows.
-- Human form: realistic proportions and readable anatomy, slightly simplified surface detail.
-- Lighting: soft global illumination, clear key direction, contact shadows, and ambient occlusion.
-- Camera: restrained cinematic coverage, physically plausible focal lengths, no random lens changes.
-- Text: place shot labels and notes outside generated imagery; avoid asking the image model to render captions.
+- 使用 `monochrome white clay render`, `white-model previs`, `untextured 3D blockout`, `matte off-white material` 等具体词。
+- 所有表面无贴图、无花纹、无品牌、无肤色、无彩色服装；物体之间通过轮廓、遮挡、接触阴影和灰度层次区分。
+- 材质以粗糙哑光为主，反射极弱；不是瓷器、蜡像、塑料玩具或金属模型。
+- 保留柔和全局照明、环境光遮蔽、接触阴影和清楚的投影方向，使白色物体仍有体积。
+- 人物可以是简化但自然的真人比例白模，不默认卡通大头、玩具比例或无脸人体模型。
+- 面部只保留可读的眼睑、鼻梁、嘴形与头部朝向；不生成彩色眼睛、睫毛妆或真实皮肤毛孔。
+- 场景可以简化，但不能变成没有空间信息的纯白摄影棚。
+- 白模干净不等于过曝：高光保留细节，白色边缘不得融进背景。
 
-Ask one concise question only when a missing decision would materially change the story, such as which ending to board or which character is the protagonist.
+## 分镜表规则
 
-## Output Modes
+默认一张完整故事板图，白或浅灰页面底，等宽网格，统一画幅。每格只保留：镜头编号、极短标签、人物/相机运动箭头；长对白、声音和详细导演说明放在图片外。
 
-### Prompt Board
+逐格至少明确：
 
-Return:
+- 景别：大远景、全景、中景、中近景、近景、特写、微距。
+- 角度：平视、俯拍、仰拍、过肩、顶视、主观、荷兰角。
+- 人物位置：左右、前后、朝向、视线、距离和遮挡关系。
+- 主要动作：一个可冻结的动作节点。
+- 运镜：固定、推、拉、摇、移、跟随、升降、环绕或复合运镜。
+- 视觉焦点：脸、手、道具、出口、空间距离或动作撞击点。
 
-1. Global continuity and style lock.
-2. A compact beat list.
-3. One shot block per frame containing shot number, duration if known, shot purpose, action, framing/lens, camera movement, light, continuity note, generation prompt, and negative prompt.
-4. A final consistency checklist.
+保持 180° 轴线和屏幕方向；若越轴，必须设计中性镜头或明确的越轴过程。让剪辑节奏由景别、机位和信息变化产生，不靠随机换角度。
 
-### Storyboard Sheet
+## 参考图处理
 
-For a requested 3x3 or 4x3 sheet, provide a master sheet prompt plus the individual frame prompts. Keep panel borders simple and consistent. Put labels below panels during deterministic layout or post-production, not inside the generated scene.
+若用户提供真人、场景或分镜参考图：
 
-### Generated Images
+- 保留身份轮廓、身体比例、服装外形、道具外形、场景结构、人物站位和相机透视。
+- 将颜色和表面材质统一转换为白色黏土白模，不重新设计建筑或服装。
+- 参考图是几何和构图依据，不是肤色、材质或最终成片风格依据。
+- 多镜头中重复写明同一人物轮廓和关键道具，防止白模角色互换或增减。
 
-When the user asks for actual images, use the available raster image-generation tool or skill. Prefer sequential individual frames for continuity, then assemble the approved frames into a grid if tooling supports it. Inspect the result for blank frames, repeated compositions, colored materials, identity drift, broken anatomy, and incoherent screen direction.
+## 输出结构
 
-## Non-Negotiable Look
+用户只要提示词时输出：
 
-- Use one untextured matte white or warm off-white clay material across skin, hair, clothes, props, architecture, and landscape.
-- Preserve form through light and shadow. White model does not mean flat lighting or blown highlights.
-- Allow subtle sculpting seams and hand-shaped irregularity; keep them subordinate to anatomy and readability.
-- Avoid colored accents, realistic skin, fabric weave, wood grain, metallic surfaces, glossy plastic, translucent skin, toy packaging, cute chibi proportions, polished CGI, and finished production textures.
-- Keep eyes, teeth, and hair in the same material family. Define them through shape and value, not color.
-- Favor readable silhouettes, grounded feet, correct contact, and believable object interaction.
+1. 白模故事板总提示词。
+2. 编号逐格计划：`景别｜人物动作｜镜头运动`。
+3. 负面约束。
+4. 若用于视频，补充“白模参考的继承范围”。
 
-## Delivery Rules
+用户要求实际故事板图片时：先完成逐格计划，再调用图像生成工具生成一张完整故事板表；同时保留图片外的详细镜头说明。用户需要高质量视频参考时，优先再输出每格独立干净关键帧，避免把带边框和文字的密集网格直接作为唯一视频参考。
 
-- Speak in the user's language.
-- Keep prompts ready to paste into common image models.
-- Preserve original dialogue and story facts unless the user asks for adaptation.
-- State any inferred action briefly instead of inventing a new subplot.
-- Do not use named studio or living-artist imitation as the style lock. Describe material, lighting, framing, and motion directly.
+## 最终检查
+
+- 是否真的是统一灰白哑光白模，而不是彩色黏土动画？
+- 是否通过光影和遮挡读出体积，而不是一片死白？
+- 是否保持人物、服装轮廓、道具和场景结构一致？
+- 是否每格只有一个主要动作，并承担新的叙事功能？
+- 是否锁定正确画幅、轴线和屏幕方向？
+- 是否避免重复机位、随机景别和无意义空镜？
+- 是否把长文字、对白和声音移到图片外？
+- 是否明确白模图对后续视频只约束构图、空间、动作与运镜？
