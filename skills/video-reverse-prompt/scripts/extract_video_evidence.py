@@ -2,185 +2,199 @@
 import argparse
 import json
 import math
+import os
 import shutil
 import subprocess
 import sys
 from pathlib import Path
 
 
-def run_json(cmd):
-    try:
-        proc = subprocess.run(cmd, check=True, capture_output=True, text=True)
-    except (OSError, subprocess.CalledProcessError):
-        return None
-    try:
-        return json.loads(proc.stdout)
-    except json.JSONDecodeError:
-        return None
+def find_binary(name):
+    override = os.environ.get(f"{name.upper()}_PATH")
+    if override and Path(override).expanduser().is_file():
+        return str(Path(override).expanduser())
+    found = shutil.which(name)
+    if found:
+        return found
+    if sys.platform == "win32":
+        candidates = [
+            Path(os.environ.get("ProgramFiles", r"C:\Program Files")) / "Topaz Labs LLC" / "Topaz Video" / f"{name}.exe",
+            Path(os.environ.get("LOCALAPPDATA", "")) / "Microsoft" / "WinGet" / "Links" / f"{name}.exe",
+        ]
+        for candidate in candidates:
+            if candidate.is_file():
+                return str(candidate)
+    return None
 
 
-def ffprobe_metadata(video):
-    if not shutil.which("ffprobe"):
+def run_json(command):
+    try:
+        process = subprocess.run(command, check=True, capture_output=True, text=True, encoding="utf-8")
+        return json.loads(process.stdout)
+    except (OSError, subprocess.CalledProcessError, json.JSONDecodeError):
         return None
-    data = run_json([
-        "ffprobe",
-        "-v",
-        "error",
-        "-select_streams",
-        "v:0",
-        "-show_entries",
-        "stream=width,height,r_frame_rate,avg_frame_rate,duration,nb_frames:format=duration",
-        "-of",
-        "json",
-        str(video),
-    ])
-    if not data:
-        return None
-    stream = (data.get("streams") or [{}])[0]
-    fmt = data.get("format") or {}
-    duration = stream.get("duration") or fmt.get("duration")
-    return {
-        "width": int(stream["width"]) if stream.get("width") else None,
-        "height": int(stream["height"]) if stream.get("height") else None,
-        "fps": parse_rate(stream.get("avg_frame_rate") or stream.get("r_frame_rate")),
-        "duration": float(duration) if duration else None,
-        "frames": int(stream["nb_frames"]) if str(stream.get("nb_frames", "")).isdigit() else None,
-        "backend": "ffprobe",
-    }
 
 
 def parse_rate(value):
     if not value or value == "0/0":
         return None
-    if "/" in value:
-        a, b = value.split("/", 1)
-        try:
-            return float(a) / float(b)
-        except ZeroDivisionError:
-            return None
     try:
+        if "/" in value:
+            numerator, denominator = value.split("/", 1)
+            return float(numerator) / float(denominator)
         return float(value)
-    except ValueError:
+    except (ValueError, ZeroDivisionError):
         return None
 
 
-def cv2_metadata(video):
+def probe_with_ffprobe(video, ffprobe):
+    if not ffprobe:
+        return None
+    data = run_json([
+        ffprobe, "-v", "error", "-show_entries",
+        "format=duration:stream=index,codec_type,codec_name,width,height,avg_frame_rate,sample_rate,channels",
+        "-of", "json", str(video),
+    ])
+    if not data:
+        return None
+    streams = data.get("streams") or []
+    video_stream = next((stream for stream in streams if stream.get("codec_type") == "video"), {})
+    audio_stream = next((stream for stream in streams if stream.get("codec_type") == "audio"), {})
+    duration = (data.get("format") or {}).get("duration")
+    return {
+        "width": int(video_stream["width"]) if video_stream.get("width") else None,
+        "height": int(video_stream["height"]) if video_stream.get("height") else None,
+        "fps": parse_rate(video_stream.get("avg_frame_rate")),
+        "duration": float(duration) if duration else None,
+        "video_codec": video_stream.get("codec_name"),
+        "audio_codec": audio_stream.get("codec_name"),
+        "sample_rate": int(audio_stream["sample_rate"]) if audio_stream.get("sample_rate") else None,
+        "channels": audio_stream.get("channels"),
+        "backend": "ffprobe",
+    }
+
+
+def probe_with_opencv(video):
     try:
         import cv2
     except Exception:
         return None
-    cap = cv2.VideoCapture(str(video))
-    if not cap.isOpened():
+    capture = cv2.VideoCapture(str(video))
+    if not capture.isOpened():
         return None
-    fps = cap.get(cv2.CAP_PROP_FPS) or None
-    frames = cap.get(cv2.CAP_PROP_FRAME_COUNT) or None
-    duration = (frames / fps) if fps and frames else None
-    meta = {
-        "width": int(cap.get(cv2.CAP_PROP_FRAME_WIDTH) or 0) or None,
-        "height": int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT) or 0) or None,
+    fps = capture.get(cv2.CAP_PROP_FPS) or None
+    frame_count = capture.get(cv2.CAP_PROP_FRAME_COUNT) or None
+    metadata = {
+        "width": int(capture.get(cv2.CAP_PROP_FRAME_WIDTH) or 0) or None,
+        "height": int(capture.get(cv2.CAP_PROP_FRAME_HEIGHT) or 0) or None,
         "fps": float(fps) if fps else None,
-        "duration": float(duration) if duration else None,
-        "frames": int(frames) if frames else None,
+        "duration": float(frame_count / fps) if frame_count and fps else None,
+        "video_codec": None,
+        "audio_codec": None,
+        "sample_rate": None,
+        "channels": None,
         "backend": "opencv",
     }
-    cap.release()
-    return meta
+    capture.release()
+    return metadata
 
 
-def timestamps(duration, count):
+def even_timestamps(duration, count):
     if not duration or duration <= 0:
         return [0.0]
-    if count <= 1:
-        return [min(duration * 0.5, max(duration - 0.05, 0.0))]
+    count = max(1, count)
+    if count == 1:
+        return [min(duration / 2, max(duration - 0.05, 0.0))]
     start = min(0.2, duration * 0.05)
     end = max(duration - min(0.2, duration * 0.05), start)
-    return [start + (end - start) * i / (count - 1) for i in range(count)]
+    return [start + (end - start) * index / (count - 1) for index in range(count)]
 
 
-def ffmpeg_extract(video, out_dir, times, max_width):
-    if not shutil.which("ffmpeg"):
+def second_timestamps(duration):
+    if not duration or duration <= 0:
+        return [0.0]
+    return [float(second) for second in range(int(math.floor(duration)) + 1)]
+
+
+def extract_ffmpeg(video, output_dir, times, max_width, ffmpeg):
+    if not ffmpeg:
         return None
-    out_files = []
+    files = []
     scale = f"scale='min({max_width},iw)':-2"
-    for idx, t in enumerate(times, 1):
-        dest = out_dir / f"frame_{idx:03d}_{t:.2f}s.jpg"
-        cmd = [
-            "ffmpeg",
-            "-y",
-            "-ss",
-            f"{t:.3f}",
-            "-i",
-            str(video),
-            "-frames:v",
-            "1",
-            "-vf",
-            scale,
-            "-q:v",
-            "2",
-            str(dest),
+    for index, timestamp in enumerate(times):
+        destination = output_dir / f"frame_{index:03d}_{timestamp:.2f}s.jpg"
+        command = [
+            ffmpeg, "-y", "-hide_banner", "-loglevel", "error", "-ss", f"{timestamp:.3f}",
+            "-i", str(video), "-frames:v", "1", "-vf", scale, "-q:v", "2", str(destination),
         ]
         try:
-            subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-            out_files.append(str(dest))
+            subprocess.run(command, check=True)
+            files.append(str(destination))
         except (OSError, subprocess.CalledProcessError):
             return None
-    return out_files
+    return files
 
 
-def cv2_extract(video, out_dir, times, max_width):
+def extract_opencv(video, output_dir, times, max_width):
     try:
         import cv2
     except Exception as exc:
-        raise RuntimeError("Neither ffmpeg nor OpenCV is available for frame extraction.") from exc
-    cap = cv2.VideoCapture(str(video))
-    if not cap.isOpened():
+        raise RuntimeError("Install FFmpeg or opencv-python to extract video frames.") from exc
+    capture = cv2.VideoCapture(str(video))
+    if not capture.isOpened():
         raise RuntimeError(f"Could not open video: {video}")
-    out_files = []
-    for idx, t in enumerate(times, 1):
-        cap.set(cv2.CAP_PROP_POS_MSEC, max(t, 0.0) * 1000.0)
-        ok, frame = cap.read()
+    files = []
+    for index, timestamp in enumerate(times):
+        capture.set(cv2.CAP_PROP_POS_MSEC, max(timestamp, 0.0) * 1000)
+        ok, frame = capture.read()
         if not ok:
             continue
-        h, w = frame.shape[:2]
-        if w > max_width:
-            scale = max_width / float(w)
-            frame = cv2.resize(frame, (max_width, max(1, int(math.floor(h * scale)))))
-        dest = out_dir / f"frame_{idx:03d}_{t:.2f}s.jpg"
-        cv2.imwrite(str(dest), frame, [int(cv2.IMWRITE_JPEG_QUALITY), 92])
-        out_files.append(str(dest))
-    cap.release()
-    return out_files
+        height, width = frame.shape[:2]
+        if width > max_width:
+            ratio = max_width / float(width)
+            frame = cv2.resize(frame, (max_width, max(1, int(height * ratio))))
+        destination = output_dir / f"frame_{index:03d}_{timestamp:.2f}s.jpg"
+        cv2.imwrite(str(destination), frame, [int(cv2.IMWRITE_JPEG_QUALITY), 92])
+        files.append(str(destination))
+    capture.release()
+    return files
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Extract video metadata and evidence frames.")
+    parser = argparse.ArgumentParser(description="Extract metadata and evidence frames from a video.")
     parser.add_argument("video")
     parser.add_argument("--out-dir", required=True)
     parser.add_argument("--frames", type=int, default=12)
+    parser.add_argument("--per-second", action="store_true")
     parser.add_argument("--max-width", type=int, default=960)
+    parser.add_argument("--json", dest="json_path")
     args = parser.parse_args()
 
     video = Path(args.video).expanduser().resolve()
-    out_dir = Path(args.out_dir).expanduser().resolve()
-    if not video.exists():
+    output_dir = Path(args.out_dir).expanduser().resolve()
+    if not video.is_file():
         raise SystemExit(f"Video not found: {video}")
-    out_dir.mkdir(parents=True, exist_ok=True)
+    output_dir.mkdir(parents=True, exist_ok=True)
 
-    meta = ffprobe_metadata(video) or cv2_metadata(video)
-    if not meta:
-        meta = {"width": None, "height": None, "fps": None, "duration": None, "frames": None, "backend": None}
-    times = timestamps(meta.get("duration"), max(args.frames, 1))
-    files = ffmpeg_extract(video, out_dir, times, args.max_width)
+    ffmpeg = find_binary("ffmpeg")
+    ffprobe = find_binary("ffprobe")
+    metadata = probe_with_ffprobe(video, ffprobe) or probe_with_opencv(video)
+    if not metadata:
+        raise SystemExit("Could not read video metadata. Install FFmpeg or opencv-python.")
+    times = second_timestamps(metadata.get("duration")) if args.per_second else even_timestamps(metadata.get("duration"), args.frames)
+    files = extract_ffmpeg(video, output_dir, times, args.max_width, ffmpeg)
     if files is None:
-        files = cv2_extract(video, out_dir, times, args.max_width)
+        files = extract_opencv(video, output_dir, times, args.max_width)
 
-    print(json.dumps({
-        "video": str(video),
-        "metadata": meta,
-        "timestamps": times,
-        "frames": files,
-    }, ensure_ascii=False, indent=2))
+    result = {"video": str(video), "metadata": metadata, "timestamps": times, "frames": files}
+    text = json.dumps(result, ensure_ascii=False, indent=2)
+    if args.json_path:
+        json_path = Path(args.json_path).expanduser().resolve()
+        json_path.parent.mkdir(parents=True, exist_ok=True)
+        json_path.write_text(text, encoding="utf-8")
+    print(text)
 
 
 if __name__ == "__main__":
     main()
+
