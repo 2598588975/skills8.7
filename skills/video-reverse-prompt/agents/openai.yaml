@@ -1,4 +1,7 @@
 interface:
-  display_name: "Video Reverse Prompt"
-  short_description: "Reverse-engineer videos into shot-by-shot AI prompts."
-  default_prompt: "Use $video-reverse-prompt to analyze this video into a global visual architecture, timeline storyboard, and final Chinese AI video prompt."
+  display_name: "视频反推提示词"
+  short_description: "逐秒拆解视频并生成导演级AI视频提示词"
+  default_prompt: "Use $video-reverse-prompt to analyze this video by visual structure and timeline, then produce a second-by-second storyboard and a Chinese generation prompt."
+policy:
+  allow_implicit_invocation: true
+
