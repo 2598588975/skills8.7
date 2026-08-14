@@ -72,6 +72,7 @@ Top-level skill folders included in this backup:
 - `storyboard-grid-prompt`
 - `storyboard-image-sheet`
 - `storyboard-short-film-production`
+- `storyboard-to-seedance-video`
 - `ten-cinematic-angles`
 - `video-claw`
 - `video-generation`
