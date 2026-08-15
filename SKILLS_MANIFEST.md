@@ -15,9 +15,11 @@ Top-level skill folders included in this backup:
 - `drama-director`
 - `emotion-dialogue-video-skill`
 - `emotion-performance-director`
+- `epic-action-storyboard`
 - `fantasy-life-force-portrait-photography`
 - `fantasy-movie-poster`
 - `fantasy-qiqiguaiguai`
+- `fight-line-storyboard`
 - `focal-length-control`
 - `generative-media-skills`
 - `genmedia-video-editor`
